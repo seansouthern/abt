@@ -164,8 +164,6 @@ public class map extends MapActivity{
 		dirs102.add("102 PETERS CREEK");
 		directionsMap.put("102", dirs102);
 
-
-
 		MapView mapView = (MapView) findViewById(R.id.mapview);
 		mapView.setBuiltInZoomControls(true);
 
