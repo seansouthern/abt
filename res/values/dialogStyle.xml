@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="dialogStyle" parent="@android:style/Theme.Dialog">
+        <item name="android:background">#383838</item>
+        <item name="android:minHeight">250dp</item>
+    </style>
+</resources>
