@@ -8,26 +8,26 @@ import java.util.Map;
 
 public class DirectionsMap{
 
-	Map<String, List<String>> directionsMap = new HashMap<String, List<String>>();
+	public Map<String, List<String>> directionsMap = new HashMap<String, List<String>>();
 
-	List<String> dirs1 = new ArrayList<String>();
-	List<String> dirs2 = new ArrayList<String>();
-	List<String> dirs3 = new ArrayList<String>();
-	List<String> dirs7 = new ArrayList<String>();
-	List<String> dirs7A = new ArrayList<String>();
-	List<String> dirs8 = new ArrayList<String>();
-	List<String> dirs9 = new ArrayList<String>();
-	List<String> dirs13 = new ArrayList<String>();
-	List<String> dirs14 = new ArrayList<String>();
-	List<String> dirs15 = new ArrayList<String>();
-	List<String> dirs36 = new ArrayList<String>();
-	List<String> dirs45 = new ArrayList<String>();
-	List<String> dirs60 = new ArrayList<String>();
-	List<String> dirs75 = new ArrayList<String>();
-	List<String> dirs102 = new ArrayList<String>();
+	public List<String> dirs1 = new ArrayList<String>();
+	public List<String> dirs2 = new ArrayList<String>();
+	public List<String> dirs3 = new ArrayList<String>();
+	public List<String> dirs7 = new ArrayList<String>();
+	public List<String> dirs7A = new ArrayList<String>();
+	public List<String> dirs8 = new ArrayList<String>();
+	public List<String> dirs9 = new ArrayList<String>();
+	public List<String> dirs13 = new ArrayList<String>();
+	public List<String> dirs14 = new ArrayList<String>();
+	public List<String> dirs15 = new ArrayList<String>();
+	public List<String> dirs36 = new ArrayList<String>();
+	public List<String> dirs45 = new ArrayList<String>();
+	public List<String> dirs60 = new ArrayList<String>();
+	public List<String> dirs75 = new ArrayList<String>();
+	public List<String> dirs102 = new ArrayList<String>();
 
 
-	DirectionsMap(){
+	public DirectionsMap(){
 
 		dirs1.add("1 MULDOON");
 		dirs1.add("1 DIMOND CENTER");

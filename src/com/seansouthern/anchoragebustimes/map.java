@@ -58,9 +58,6 @@ import de.android1.overlaymanager.ManagedOverlayItem;
 import de.android1.overlaymanager.OverlayManager;
 import de.android1.overlaymanager.ZoomEvent;
 
-import com.seansouthern.anchoragebustimes.LineCoords;
-import com.seansouthern.anchoragebustimes.DirectionsMap;
-
 
 public class map extends MapActivity{
 
@@ -75,7 +72,7 @@ public class map extends MapActivity{
 	OverlayManager overlayManager;
 	ManagedOverlay stopOverlay;
 	ManagedOverlay busOverlay;
-	TimerTask doAsyncTask;
+	TimerTask BusRefreshTimerTask;
 
 	private Projection projection;
 
@@ -200,8 +197,6 @@ public class map extends MapActivity{
 
 		projection = mapView.getProjection();
 
-
-
 	}
 
 	@Override
@@ -219,10 +214,10 @@ public class map extends MapActivity{
 	public void toCallAsync(final String routeNum) {
 		final Handler handler = new Handler();
 		Timer timer = new Timer();
-		if(doAsyncTask != null){
-			doAsyncTask.cancel();
+		if(BusRefreshTimerTask != null){
+			BusRefreshTimerTask.cancel();
 		}
-		doAsyncTask = new TimerTask() {
+		BusRefreshTimerTask = new TimerTask() {
 			@Override
 			public void run() {
 				handler.post(new Runnable(){
@@ -232,6 +227,7 @@ public class map extends MapActivity{
 							performBackgroundTask.execute(routeNum);
 						}
 						catch (Exception e) {
+							Log.d("func toCallAsync", e.getMessage());
 						}
 					}
 				});
@@ -603,7 +599,7 @@ public class map extends MapActivity{
 	}
 
 	@Override
-	public void onDestroy() {
+	public void onDestroy(){
 		super.onDestroy();
 
 		// Save the route the user is on in order to display it on the next run
