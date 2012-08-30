@@ -64,6 +64,7 @@ public class DirectionsMap{
 		directionsMap.put("13", dirs13);
 
 		dirs14.add("14 DOWNTOWN");
+		dirs14.add("N/A");
 		directionsMap.put("14", dirs14);
 
 		dirs15.add("15 DOWNTOWN");

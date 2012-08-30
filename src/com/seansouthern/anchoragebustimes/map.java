@@ -91,18 +91,16 @@ public class map extends MapActivity{
 		route = sp.getString("LAST_MAP_ROUTE", "1");
 
 		Spinner spinner = (Spinner) findViewById(R.id.spinner);
-		ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(
+		ArrayAdapter<CharSequence> SpinnerAdapter = ArrayAdapter.createFromResource(
 				this, R.array.routes_array, android.R.layout.simple_spinner_item);
-		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-		spinner.setAdapter(adapter);
+		SpinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+		spinner.setAdapter(SpinnerAdapter);
 
 		final TextView leftButton = (TextView) findViewById(R.id.left_button);
 		leftButton.setText(DirectionsMap.get(route).get(0));
 
 		final TextView rightButton = (TextView) findViewById(R.id.right_button);
-		//This will be null for route14, account for it
 		rightButton.setText(DirectionsMap.get(route).get(1));
-		//Route 102, 7 and 3 need to be accounted for
 
 		leftButton.setOnClickListener(new View.OnClickListener() {
 			public void onClick(View v) {
@@ -185,7 +183,7 @@ public class map extends MapActivity{
 
 		overlayManager = new OverlayManager(this, mapView);
 		stopOverlay = overlayManager.createOverlay("route" + route, getResources().getDrawable(R.drawable.marker));
-		stopOverlay.addAll(grabStopCoordsByDirection(route, "1 MULDOON"));
+		stopOverlay.addAll(grabStopCoordsByDirection(route, DirectionsMap.get(route).get(0)));
 		stopOverlay.setOnOverlayGestureListener(mogDetector);
 		overlayManager.populate();
 
@@ -193,6 +191,11 @@ public class map extends MapActivity{
 		ManagedOverlay.boundToCenter(getResources().getDrawable(R.drawable.busmarker));
 		busOverlay.addAll(grabBusCoords(route));
 		toCallAsync(route);
+		overlayManager.populate();
+		
+		List<Overlay> mapOverlays = ((MapView) findViewById(R.id.mapview)).getOverlays();
+		mapOverlays.add(new LineOverlay(route));
+		((MapView) findViewById(R.id.mapview)).invalidate();
 		overlayManager.populate();
 
 		projection = mapView.getProjection();
@@ -203,6 +206,12 @@ public class map extends MapActivity{
 	public void onPause(){
 		super.onPause();
 		BusRefreshTimerTask.cancel();
+
+		// Save the route the user is on in order to display it on the next run
+		SharedPreferences LastRoute = getPreferences(MODE_PRIVATE);
+		SharedPreferences.Editor editor = LastRoute.edit();
+		editor.putString("LAST_MAP_ROUTE", route);
+		editor.commit();
 	}
 
 	@Override
@@ -243,7 +252,7 @@ public class map extends MapActivity{
 		}
 
 		public void onLongPress(MotionEvent arg0, ManagedOverlay arg1) {
-			
+
 		}
 
 		public void onLongPressFinished(MotionEvent arg0,
@@ -538,17 +547,18 @@ public class map extends MapActivity{
 
 	public class SpinnerItemListener implements OnItemSelectedListener {
 		public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
-			String item = parent.getItemAtPosition(pos).toString();
-			Matcher m = main.p.matcher(item);
+			String SpinnerItem = parent.getItemAtPosition(pos).toString();
+			Matcher m = main.p.matcher(SpinnerItem);
 			if (m.find()) {
-				item = m.group(0);
+				SpinnerItem = m.group(0);
 			}
-			Log.d("", "item: " + item + " | " + "route: " + route);
-			if(!item.equals(null) && !item.equals(route)){
+			Log.d("", "SpinnerItem: " + SpinnerItem + " | " + "route: " + route);
+			if(!SpinnerItem.equals(null) && !SpinnerItem.equals(route)){
 				overlayManager.removeOverlay(stopOverlay);
 				overlayManager.removeOverlay(busOverlay);
-				overlayManager.populate();
-				route = item;
+				route = SpinnerItem;
+				Log.d("", "SpinnerItem: " + SpinnerItem + " | " + "route: " + route);
+
 
 				List<Overlay> mapOverlays = ((MapView) findViewById(R.id.mapview)).getOverlays();
 				mapOverlays.clear();
@@ -559,25 +569,26 @@ public class map extends MapActivity{
 				stopOverlay.addAll(grabStopCoordsByDirection(route, "ALL"));
 				stopOverlay.setOnOverlayGestureListener(mogDetector);
 				overlayManager.populate();
+				
 				overlayManager.createOverlay("bus" + route, getResources().getDrawable(R.drawable.busmarker));
 				busOverlay = overlayManager.getOverlay("bus" + route);
 				busOverlay.addAll(grabBusCoords(route));
 				overlayManager.populate();
 				toCallAsync(route);
-				
+
 
 				if(route.equals("14")){
 					TextView leftButton = (TextView) findViewById(R.id.left_button);
 					leftButton.setText(DirectionsMap.get(route).get(0));
 					leftButton.setSelected(false);
-					
+
 					TextView rightButton = (TextView) findViewById(R.id.right_button);
 					rightButton.setText("");
 					rightButton.setSelected(false);
 					rightButton.setClickable(false);
-					
+
 				}
-					
+
 				else{
 					TextView leftButton = (TextView) findViewById(R.id.left_button);
 					leftButton.setText(DirectionsMap.get(route).get(0));
@@ -588,13 +599,10 @@ public class map extends MapActivity{
 					rightButton.setSelected(false);
 				}
 			}
-			else if(item.equals(route)){
-				
-			}
 		}
 
 		public void onNothingSelected(AdapterView<?> parent) {
-			
+
 		}
 	}
 
@@ -603,8 +611,8 @@ public class map extends MapActivity{
 		super.onDestroy();
 
 		// Save the route the user is on in order to display it on the next run
-		SharedPreferences favStops = getPreferences(MODE_PRIVATE);
-		SharedPreferences.Editor editor = favStops.edit();
+		SharedPreferences LastRoute = getPreferences(MODE_PRIVATE);
+		SharedPreferences.Editor editor = LastRoute.edit();
 		editor.putString("LAST_MAP_ROUTE", route);
 		editor.commit();
 
