@@ -202,7 +202,7 @@ public class map extends MapActivity{
 	@Override
 	public void onPause(){
 		super.onPause();
-		doAsyncTask.cancel();
+		BusRefreshTimerTask.cancel();
 	}
 
 	@Override
@@ -233,7 +233,7 @@ public class map extends MapActivity{
 				});
 			}
 		};
-		timer.schedule(doAsyncTask, 0,20000);
+		timer.schedule(BusRefreshTimerTask, 0,20000);
 	}
 
 	OnOverlayGestureListener mogDetector = new ManagedOverlayGestureDetector.OnOverlayGestureListener(){
