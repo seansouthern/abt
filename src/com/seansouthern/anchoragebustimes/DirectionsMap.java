@@ -12,8 +12,9 @@ public class DirectionsMap{
 
 	public List<String> dirs1 = new ArrayList<String>();
 	public List<String> dirs2 = new ArrayList<String>();
-	public List<String> dirs3 = new ArrayList<String>();
-	public List<String> dirs7 = new ArrayList<String>();
+	public List<String> dirs3C = new ArrayList<String>();
+	public List<String> dirs3N = new ArrayList<String>();
+	public List<String> dirs7J = new ArrayList<String>();
 	public List<String> dirs7A = new ArrayList<String>();
 	public List<String> dirs8 = new ArrayList<String>();
 	public List<String> dirs9 = new ArrayList<String>();
@@ -37,15 +38,17 @@ public class DirectionsMap{
 		dirs2.add("2 DOWNTOWN");
 		directionsMap.put("2", dirs2);
 
-		dirs3.add("3C DOWNTOWN");
-		dirs3.add("3N DOWNTOWN");
-		dirs3.add("3C CENTENNIAL");
-		dirs3.add("3N MULDOON");
-		directionsMap.put("3", dirs3);
+		dirs3C.add("3C DOWNTOWN");
+		dirs3C.add("3C CENTENNIAL");
+		directionsMap.put("3C", dirs3C);
+		
+		dirs3N.add("3N DOWNTOWN");
+		dirs3N.add("3N MULDOON");
+		directionsMap.put("3N", dirs3N);
 
-		dirs7.add("7 DIMOND CENTER");
-		dirs7.add("7 DOWNTOWN");
-		directionsMap.put("7", dirs7);
+		dirs7J.add("7J DIMOND CENTER");
+		dirs7J.add("7J DOWNTOWN");
+		directionsMap.put("7J", dirs7J);
 
 		dirs7A.add("7A DIMOND CENTER");
 		dirs7A.add("7A DOWNTOWN");

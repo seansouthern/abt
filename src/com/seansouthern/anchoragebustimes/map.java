@@ -62,7 +62,7 @@ import de.android1.overlaymanager.ZoomEvent;
 public class map extends MapActivity{
 
 	public static String route = null;
-	
+
 	DirectionsMap DirectionsMapClass = new DirectionsMap();
 	Map<String, List<String>> DirectionsMap = DirectionsMapClass.directionsMap;
 	LineCoords lc = new LineCoords();
@@ -70,7 +70,7 @@ public class map extends MapActivity{
 	MySQLiteHelper myDbHelper = null;
 	Cursor cursor = null;
 	SQLiteDatabase db = null;
-	
+
 	OverlayManager overlayManager;
 	ManagedOverlay stopOverlay;
 	ManagedOverlay busOverlay;
@@ -78,7 +78,7 @@ public class map extends MapActivity{
 
 	private Projection projection;
 
-	public static String REGEX_PATTERN = "^\\d+";
+	public static String REGEX_PATTERN = "^\\d+[C|N|A|J]?";
 	public static Pattern p = Pattern.compile(REGEX_PATTERN);
 
 	@Override
@@ -99,6 +99,7 @@ public class map extends MapActivity{
 		spinner.setAdapter(SpinnerAdapter);
 
 		final TextView leftButton = (TextView) findViewById(R.id.left_button);
+		Log.d("route", "route is " + route);
 		leftButton.setText(DirectionsMap.get(route).get(0));
 
 		final TextView rightButton = (TextView) findViewById(R.id.right_button);
@@ -184,12 +185,12 @@ public class map extends MapActivity{
 		mapView.getController().setZoom(12);
 
 		overlayManager = new OverlayManager(this, mapView);
-		
+
 		stopOverlay = overlayManager.createOverlay("route" + route, getResources().getDrawable(R.drawable.marker));
 		stopOverlay.addAll(grabStopCoordsByDirection(route, DirectionsMap.get(route).get(0)));
 		stopOverlay.setOnOverlayGestureListener(mogDetector);
 		overlayManager.populate();
-		
+
 		List<Overlay> mapOverlays = ((MapView) findViewById(R.id.mapview)).getOverlays();
 		mapOverlays.add(new LineOverlay(route));
 		((MapView) findViewById(R.id.mapview)).invalidate();
@@ -237,11 +238,11 @@ public class map extends MapActivity{
 			myDbHelper.close();
 		}
 	}
-	
-	
+
+
 	public List<ManagedOverlayItem> grabBusCoords(String route){
 		List<ManagedOverlayItem> manBusList = new ArrayList<ManagedOverlayItem>();
-		Pattern p = Pattern.compile(REGEX_PATTERN);
+		//Pattern p = Pattern.compile(REGEX_PATTERN);
 		Matcher m = p.matcher(route);
 		if (m.find()) {
 			String routeNum = m.group(0);
@@ -264,7 +265,7 @@ public class map extends MapActivity{
 
 	public List<ManagedOverlayItem> grabStopCoordsByDirection(String routeNum, String direction){
 		List<ManagedOverlayItem> manStopList = new ArrayList<ManagedOverlayItem>();
-		if(direction == "ALL"){
+		if(direction.equals("ALL")){
 			String[] columns = {"_id", "num", "addr", "lng", "lat", "routes"};
 			String where = "routes LIKE '%, " + routeNum + ",%'";
 			this.cursor = db.query("stops", columns, where, null, null, null, null);
@@ -320,7 +321,7 @@ public class map extends MapActivity{
 		}
 		return manStopList;
 	}
-	
+
 	public void toCallAsync(final String route) {
 		final Handler handler = new Handler();
 		Timer timer = new Timer();
@@ -564,13 +565,15 @@ public class map extends MapActivity{
 		}
 	}
 
-	
+
 	public class SpinnerItemListener implements OnItemSelectedListener {
 		public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
 			String SpinnerItem = parent.getItemAtPosition(pos).toString();
-			Matcher m = main.p.matcher(SpinnerItem);
+			Log.d("SpinnerItem", "SpinnerItem going into RegEx match: " + SpinnerItem);
+			Matcher m = p.matcher(SpinnerItem);
 			if (m.find()) {
 				SpinnerItem = m.group(0);
+				Log.d("SpinnerItem", "Regex found SpinnerItem to be " + SpinnerItem);
 			}
 			Log.d("", "SpinnerItem: " + SpinnerItem + " | " + "route: " + route);
 			if(!SpinnerItem.equals(null) && !SpinnerItem.equals(route)){
@@ -584,13 +587,13 @@ public class map extends MapActivity{
 				mapOverlays.clear();
 				mapOverlays.add(new LineOverlay(route));
 				((MapView) findViewById(R.id.mapview)).invalidate();
-				
+
 				overlayManager.createOverlay("route" + route, getResources().getDrawable(R.drawable.marker));
 				stopOverlay = overlayManager.getOverlay("route" + route);
 				stopOverlay.addAll(grabStopCoordsByDirection(route, "ALL"));
 				stopOverlay.setOnOverlayGestureListener(mogDetector);
 				overlayManager.populate();
-				
+
 				overlayManager.createOverlay("bus" + route, getResources().getDrawable(R.drawable.busmarker));
 				busOverlay = overlayManager.getOverlay("bus" + route);
 				busOverlay.addAll(grabBusCoords(route));
@@ -608,10 +611,11 @@ public class map extends MapActivity{
 					rightButton.setSelected(false);
 					rightButton.setClickable(false);
 
-				}
+				}	
 
 				else{
 					TextView leftButton = (TextView) findViewById(R.id.left_button);
+					Log.d("route", "route is " + route);
 					leftButton.setText(DirectionsMap.get(route).get(0));
 					leftButton.setSelected(false);
 
@@ -666,6 +670,13 @@ public class map extends MapActivity{
 			mPaint.setStrokeWidth(4);
 
 			double[][] line = lc.l.get(1);
+
+			if(routeNum.equals("7J") || routeNum.equals("7A")){
+				routeNum = "7";
+			}
+			else if(routeNum.equals("3C") || routeNum.equals("3N")){
+				routeNum = "3";
+			}
 			int routeNumInt = Integer.parseInt(routeNum);
 			switch(routeNumInt){
 			case 1:			line = lc.l.get(0);break;
