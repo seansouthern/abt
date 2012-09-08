@@ -61,14 +61,16 @@ import de.android1.overlaymanager.ZoomEvent;
 
 public class map extends MapActivity{
 
+	public static String route = null;
+	
 	DirectionsMap DirectionsMapClass = new DirectionsMap();
 	Map<String, List<String>> DirectionsMap = DirectionsMapClass.directionsMap;
 	LineCoords lc = new LineCoords();
-	public static String route = null;
 
 	MySQLiteHelper myDbHelper = null;
 	Cursor cursor = null;
 	SQLiteDatabase db = null;
+	
 	OverlayManager overlayManager;
 	ManagedOverlay stopOverlay;
 	ManagedOverlay busOverlay;
@@ -182,15 +184,10 @@ public class map extends MapActivity{
 		mapView.getController().setZoom(12);
 
 		overlayManager = new OverlayManager(this, mapView);
+		
 		stopOverlay = overlayManager.createOverlay("route" + route, getResources().getDrawable(R.drawable.marker));
 		stopOverlay.addAll(grabStopCoordsByDirection(route, DirectionsMap.get(route).get(0)));
 		stopOverlay.setOnOverlayGestureListener(mogDetector);
-		overlayManager.populate();
-
-		busOverlay = overlayManager.createOverlay("route" + route + "bus", getResources().getDrawable(R.drawable.busmarker));
-		ManagedOverlay.boundToCenter(getResources().getDrawable(R.drawable.busmarker));
-		busOverlay.addAll(grabBusCoords(route));
-		toCallAsync(route);
 		overlayManager.populate();
 		
 		List<Overlay> mapOverlays = ((MapView) findViewById(R.id.mapview)).getOverlays();
@@ -220,7 +217,111 @@ public class map extends MapActivity{
 		toCallAsync(route);
 	}
 
-	public void toCallAsync(final String routeNum) {
+	@Override
+	public void onDestroy(){
+		super.onDestroy();
+
+		// Save the route the user is on in order to display it on the next run
+		SharedPreferences LastRoute = getPreferences(MODE_PRIVATE);
+		SharedPreferences.Editor editor = LastRoute.edit();
+		editor.putString("LAST_MAP_ROUTE", route);
+		editor.commit();
+
+		if (cursor != null){
+			cursor.close();
+		}
+		if (db != null){
+			db.close();
+		}
+		if (myDbHelper != null){
+			myDbHelper.close();
+		}
+	}
+	
+	
+	public List<ManagedOverlayItem> grabBusCoords(String route){
+		List<ManagedOverlayItem> manBusList = new ArrayList<ManagedOverlayItem>();
+		Pattern p = Pattern.compile(REGEX_PATTERN);
+		Matcher m = p.matcher(route);
+		if (m.find()) {
+			String routeNum = m.group(0);
+			try {
+				Parser xPar= Parser.xmlParser();
+				Document page = Jsoup.connect("http://bustracker.muni.org/InfoPoint/map/GetVehicleXML.ashx?RouteId=" + routeNum).parser(xPar).get();
+				for(int i = 0; i < page.getElementsByAttribute("lng").size(); i++){
+					Float lng = Float.parseFloat(page.getElementsByAttribute("lng").get(i).attr("lng"));
+					Float lat = Float.parseFloat(page.getElementsByAttribute("lng").get(i).attr("lat"));
+					ManagedOverlayItem bus = new ManagedOverlayItem(new LatLonPoint(lat, lng), "Bus", "Bus");
+					manBusList.add(bus);
+				}			
+			}
+			catch(IOException e){
+				Log.d("grabBusCoords", "Couldn't fetch bus coords!");
+			}
+		}
+		return manBusList;
+	}
+
+	public List<ManagedOverlayItem> grabStopCoordsByDirection(String routeNum, String direction){
+		List<ManagedOverlayItem> manStopList = new ArrayList<ManagedOverlayItem>();
+		if(direction == "ALL"){
+			String[] columns = {"_id", "num", "addr", "lng", "lat", "routes"};
+			String where = "routes LIKE '%, " + routeNum + ",%'";
+			this.cursor = db.query("stops", columns, where, null, null, null, null);
+			startManagingCursor(this.cursor);
+			this.cursor.moveToFirst();
+			for (int i = 0; i < this.cursor.getCount(); i++){
+				Float lat = Float.parseFloat(this.cursor.getString(4));
+				Float lng = Float.parseFloat(this.cursor.getString(3));
+				GeoPoint stop = new LatLonPoint(lat, lng);
+				ManagedOverlayItem overlayitem = new ManagedOverlayItem(stop, "Stop " + this.cursor.getInt(this.cursor.getColumnIndex("num")),
+						this.cursor.getString(this.cursor.getColumnIndex("addr")));
+				manStopList.add(overlayitem);
+				this.cursor.moveToNext();
+			}
+		}
+		else{
+			String[] columns = {"_id", "num", "route", "direction"};
+			String where = "route LIKE '" + routeNum + "' AND direction LIKE '%, " + direction + ",%'";
+			this.cursor = db.query("directions", columns, where, null, null, null, null);
+			startManagingCursor(this.cursor);
+			this.cursor.moveToFirst();
+			List<String> stopNumberList = new ArrayList<String>();
+			for(int i = 0; i < this.cursor.getCount(); i++){
+				int stopNum = this.cursor.getInt(this.cursor.getColumnIndex("num"));
+				stopNumberList.add(String.valueOf(stopNum));
+				this.cursor.moveToNext();
+			}
+
+			String[] dirColumns = {"_id", "num", "addr", "lng", "lat", "routes"};
+			String dirWhere = "";
+			for(int j = 0; j < stopNumberList.size(); j++){
+				if(j == 0){
+					dirWhere = "num LIKE '" + stopNumberList.get(j) + "'";
+				}
+				else{
+					dirWhere = dirWhere.concat(" OR num LIKE '" + stopNumberList.get(j) + "'");
+				}
+			}
+			Cursor singleStopsCursor = db.query("stops", dirColumns, dirWhere, null, null, null, null);
+			startManagingCursor(singleStopsCursor);
+
+			singleStopsCursor.moveToFirst();
+			for (int i = 0; i < singleStopsCursor.getCount(); i++){
+				Float lat = Float.parseFloat(singleStopsCursor.getString(4));
+				Float lng = Float.parseFloat(singleStopsCursor.getString(3));
+				GeoPoint stop = new LatLonPoint(lat, lng);
+				ManagedOverlayItem overlayitem = new ManagedOverlayItem(stop, "Stop " + singleStopsCursor.getInt(singleStopsCursor.getColumnIndex("num")),
+						singleStopsCursor.getString(singleStopsCursor.getColumnIndex("addr")));
+				manStopList.add(overlayitem);
+
+				singleStopsCursor.moveToNext();
+			}
+		}
+		return manStopList;
+	}
+	
+	public void toCallAsync(final String route) {
 		final Handler handler = new Handler();
 		Timer timer = new Timer();
 		if(BusRefreshTimerTask != null){
@@ -233,7 +334,7 @@ public class map extends MapActivity{
 					public void run() {
 						try {
 							BusRefresher performBackgroundTask = new BusRefresher();
-							performBackgroundTask.execute(routeNum);
+							performBackgroundTask.execute(route);
 						}
 						catch (Exception e) {
 							Log.d("func toCallAsync", e.getMessage());
@@ -463,88 +564,7 @@ public class map extends MapActivity{
 		}
 	}
 
-	public List<ManagedOverlayItem> grabBusCoords(String route){
-		List<ManagedOverlayItem> manBusList = new ArrayList<ManagedOverlayItem>();
-		Pattern p = Pattern.compile(REGEX_PATTERN);
-		Matcher m = p.matcher(route);
-		if (m.find()) {
-			String routeNum = m.group(0);
-			try {
-				Parser xPar= Parser.xmlParser();
-				Document page = Jsoup.connect("http://bustracker.muni.org/InfoPoint/map/GetVehicleXML.ashx?RouteId=" + routeNum).parser(xPar).get();
-				for(int i = 0; i < page.getElementsByAttribute("lng").size(); i++){
-					Float lng = Float.parseFloat(page.getElementsByAttribute("lng").get(i).attr("lng"));
-					Float lat = Float.parseFloat(page.getElementsByAttribute("lng").get(i).attr("lat"));
-					ManagedOverlayItem bus = new ManagedOverlayItem(new LatLonPoint(lat, lng), "Bus", "Bus");
-					manBusList.add(bus);
-				}			
-			}
-			catch(IOException e){
-				Log.d("grabBusCoords", e.getMessage());
-			}
-		}
-		return manBusList;
-	}
-
-	public List<ManagedOverlayItem> grabStopCoordsByDirection(String routeNum, String direction){
-		List<ManagedOverlayItem> manStopList = new ArrayList<ManagedOverlayItem>();
-		if(direction == "ALL"){
-			String[] columns = {"_id", "num", "addr", "lng", "lat", "routes"};
-			String where = "routes LIKE '%, " + routeNum + ",%'";
-			this.cursor = db.query("stops", columns, where, null, null, null, null);
-			startManagingCursor(this.cursor);
-			this.cursor.moveToFirst();
-			for (int i = 0; i < this.cursor.getCount(); i++){
-				Float lat = Float.parseFloat(this.cursor.getString(4));
-				Float lng = Float.parseFloat(this.cursor.getString(3));
-				GeoPoint stop = new LatLonPoint(lat, lng);
-				ManagedOverlayItem overlayitem = new ManagedOverlayItem(stop, "Stop " + this.cursor.getInt(this.cursor.getColumnIndex("num")),
-						this.cursor.getString(this.cursor.getColumnIndex("addr")));
-				manStopList.add(overlayitem);
-				this.cursor.moveToNext();
-			}
-		}
-		else{
-			String[] columns = {"_id", "num", "route", "direction"};
-			String where = "route LIKE '" + routeNum + "' AND direction LIKE '%, " + direction + ",%'";
-			this.cursor = db.query("directions", columns, where, null, null, null, null);
-			startManagingCursor(this.cursor);
-			this.cursor.moveToFirst();
-			List<String> stopNumberList = new ArrayList<String>();
-			for(int i = 0; i < this.cursor.getCount(); i++){
-				int stopNum = this.cursor.getInt(this.cursor.getColumnIndex("num"));
-				stopNumberList.add(String.valueOf(stopNum));
-				this.cursor.moveToNext();
-			}
-
-			String[] dirColumns = {"_id", "num", "addr", "lng", "lat", "routes"};
-			String dirWhere = "";
-			for(int j = 0; j < stopNumberList.size(); j++){
-				if(j == 0){
-					dirWhere = "num LIKE '" + stopNumberList.get(j) + "'";
-				}
-				else{
-					dirWhere = dirWhere.concat(" OR num LIKE '" + stopNumberList.get(j) + "'");
-				}
-			}
-			Cursor singleStopsCursor = db.query("stops", dirColumns, dirWhere, null, null, null, null);
-			startManagingCursor(singleStopsCursor);
-
-			singleStopsCursor.moveToFirst();
-			for (int i = 0; i < singleStopsCursor.getCount(); i++){
-				Float lat = Float.parseFloat(singleStopsCursor.getString(4));
-				Float lng = Float.parseFloat(singleStopsCursor.getString(3));
-				GeoPoint stop = new LatLonPoint(lat, lng);
-				ManagedOverlayItem overlayitem = new ManagedOverlayItem(stop, "Stop " + singleStopsCursor.getInt(singleStopsCursor.getColumnIndex("num")),
-						singleStopsCursor.getString(singleStopsCursor.getColumnIndex("addr")));
-				manStopList.add(overlayitem);
-
-				singleStopsCursor.moveToNext();
-			}
-		}
-		return manStopList;
-	}
-
+	
 	public class SpinnerItemListener implements OnItemSelectedListener {
 		public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
 			String SpinnerItem = parent.getItemAtPosition(pos).toString();
@@ -564,6 +584,7 @@ public class map extends MapActivity{
 				mapOverlays.clear();
 				mapOverlays.add(new LineOverlay(route));
 				((MapView) findViewById(R.id.mapview)).invalidate();
+				
 				overlayManager.createOverlay("route" + route, getResources().getDrawable(R.drawable.marker));
 				stopOverlay = overlayManager.getOverlay("route" + route);
 				stopOverlay.addAll(grabStopCoordsByDirection(route, "ALL"));
@@ -606,27 +627,6 @@ public class map extends MapActivity{
 		}
 	}
 
-	@Override
-	public void onDestroy(){
-		super.onDestroy();
-
-		// Save the route the user is on in order to display it on the next run
-		SharedPreferences LastRoute = getPreferences(MODE_PRIVATE);
-		SharedPreferences.Editor editor = LastRoute.edit();
-		editor.putString("LAST_MAP_ROUTE", route);
-		editor.commit();
-
-		if (cursor != null){
-			cursor.close();
-		}
-		if (db != null){
-			db.close();
-		}
-		if (myDbHelper != null){
-			myDbHelper.close();
-		}
-	}
-
 	public class BusRefresher extends AsyncTask<String, Void, List<ManagedOverlayItem>>{
 
 		@Override
@@ -653,7 +653,6 @@ public class map extends MapActivity{
 		private String routeNum = route;
 		private GeoPoint gP1 = null;
 		private GeoPoint gP2 = null;
-
 
 		public void draw(Canvas canvas, MapView mapv, boolean shadow){
 			super.draw(canvas, mapv, shadow);
