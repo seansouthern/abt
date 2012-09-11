@@ -78,6 +78,8 @@ public class map extends MapActivity{
 
 	private Projection projection;
 
+	// Match any amount of digits at the beginning of the string 
+	// And optionally a single occurrence of the letters C, N, A, or J
 	public static String REGEX_PATTERN = "^\\d+[C|N|A|J]?";
 	public static Pattern p = Pattern.compile(REGEX_PATTERN);
 
@@ -99,7 +101,6 @@ public class map extends MapActivity{
 		spinner.setAdapter(SpinnerAdapter);
 
 		final TextView leftButton = (TextView) findViewById(R.id.left_button);
-		Log.d("route", "route is " + route);
 		leftButton.setText(DirectionsMap.get(route).get(0));
 
 		final TextView rightButton = (TextView) findViewById(R.id.right_button);
@@ -239,7 +240,6 @@ public class map extends MapActivity{
 		}
 	}
 
-
 	public List<ManagedOverlayItem> grabBusCoords(String route){
 		List<ManagedOverlayItem> manBusList = new ArrayList<ManagedOverlayItem>();
 		//Pattern p = Pattern.compile(REGEX_PATTERN);
@@ -265,7 +265,83 @@ public class map extends MapActivity{
 
 	public List<ManagedOverlayItem> grabStopCoordsByDirection(String routeNum, String direction){
 		List<ManagedOverlayItem> manStopList = new ArrayList<ManagedOverlayItem>();
-		if(direction.equals("ALL")){
+		String subRouteFlag = null;
+		
+		if(routeNum.equals("7A")){
+			routeNum = "7";
+			subRouteFlag = "7A";
+		}
+		else if(routeNum.equals("7J")){
+			routeNum = "7";
+			subRouteFlag = "7J";
+		}
+		else if(routeNum.equals("3C")){
+			routeNum = "3";
+			subRouteFlag = "3C";
+		}
+		else if(routeNum.equals("3N")){
+			routeNum = "3";
+			subRouteFlag = "3N";
+		}
+
+		if(direction.equals("ALL") && (routeNum.equals("7") || routeNum.equals("3"))){
+			
+			String[] dualDirections = { "", "" };
+			if(subRouteFlag.equals("7A")){
+				dualDirections[0] = "7A DOWNTOWN";
+				dualDirections[1] = "7A DIMOND CENTER";
+			}
+			else if(subRouteFlag.equals("7J")){
+				dualDirections[0] = "7J DOWNTOWN";
+				dualDirections[1] = "7J DIMOND CENTER";
+			}
+			else if(subRouteFlag.equals("3C")){
+				dualDirections[0] = "3C DOWNTOWN";
+				dualDirections[1] = "3C CENTENNIAL";
+			}
+			else if(subRouteFlag.equals("3N")){
+				dualDirections[0] = "3N DOWNTOWN";
+				dualDirections[1] = "3N MULDOON";
+			}
+			String[] columns = {"_id", "num", "route", "direction"};
+			String where = "route LIKE '" + routeNum + "' AND direction LIKE '%, " + dualDirections[0] + ",%' OR direction LIKE '%, " + dualDirections[1] + ",%'";
+			this.cursor = db.query("directions", columns, where, null, null, null, null);
+			startManagingCursor(this.cursor);
+			this.cursor.moveToFirst();
+			List<String> stopNumberList = new ArrayList<String>();
+			for(int i = 0; i < this.cursor.getCount(); i++){
+				int stopNum = this.cursor.getInt(this.cursor.getColumnIndex("num"));
+				stopNumberList.add(String.valueOf(stopNum));
+				this.cursor.moveToNext();
+			}
+
+			String[] dirColumns = {"_id", "num", "addr", "lng", "lat", "routes"};
+			String dirWhere = "";
+			for(int j = 0; j < stopNumberList.size(); j++){
+				if(j == 0){
+					dirWhere = "num LIKE '" + stopNumberList.get(j) + "'";
+				}
+				else{
+					dirWhere = dirWhere.concat(" OR num LIKE '" + stopNumberList.get(j) + "'");
+				}
+			}
+			Cursor singleStopsCursor = db.query("stops", dirColumns, dirWhere, null, null, null, null);
+			startManagingCursor(singleStopsCursor);
+
+			singleStopsCursor.moveToFirst();
+			for (int i = 0; i < singleStopsCursor.getCount(); i++){
+				Float lat = Float.parseFloat(singleStopsCursor.getString(4));
+				Float lng = Float.parseFloat(singleStopsCursor.getString(3));
+				GeoPoint stop = new LatLonPoint(lat, lng);
+				ManagedOverlayItem overlayitem = new ManagedOverlayItem(stop, "Stop " + singleStopsCursor.getInt(singleStopsCursor.getColumnIndex("num")),
+						singleStopsCursor.getString(singleStopsCursor.getColumnIndex("addr")));
+				manStopList.add(overlayitem);
+
+				singleStopsCursor.moveToNext();
+			}
+			
+		}
+		else if(direction.equals("ALL") && (!routeNum.equals("3") && !routeNum.equals("7"))){
 			String[] columns = {"_id", "num", "addr", "lng", "lat", "routes"};
 			String where = "routes LIKE '%, " + routeNum + ",%'";
 			this.cursor = db.query("stops", columns, where, null, null, null, null);
@@ -321,6 +397,7 @@ public class map extends MapActivity{
 		}
 		return manStopList;
 	}
+	
 
 	public void toCallAsync(final String route) {
 		final Handler handler = new Handler();
@@ -346,6 +423,7 @@ public class map extends MapActivity{
 		};
 		timer.schedule(BusRefreshTimerTask, 0,20000);
 	}
+	
 
 	OnOverlayGestureListener mogDetector = new ManagedOverlayGestureDetector.OnOverlayGestureListener(){
 		public boolean onDoubleTap(MotionEvent arg0, ManagedOverlay arg1,
@@ -507,6 +585,7 @@ public class map extends MapActivity{
 		}
 
 	}
+	
 
 	class MapTimesTable extends TableLayout{
 		public MapTimesTable(Context context, String stopNum) {
@@ -569,19 +648,14 @@ public class map extends MapActivity{
 	public class SpinnerItemListener implements OnItemSelectedListener {
 		public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
 			String SpinnerItem = parent.getItemAtPosition(pos).toString();
-			Log.d("SpinnerItem", "SpinnerItem going into RegEx match: " + SpinnerItem);
 			Matcher m = p.matcher(SpinnerItem);
 			if (m.find()) {
 				SpinnerItem = m.group(0);
-				Log.d("SpinnerItem", "Regex found SpinnerItem to be " + SpinnerItem);
 			}
-			Log.d("", "SpinnerItem: " + SpinnerItem + " | " + "route: " + route);
 			if(!SpinnerItem.equals(null) && !SpinnerItem.equals(route)){
 				overlayManager.removeOverlay(stopOverlay);
 				overlayManager.removeOverlay(busOverlay);
 				route = SpinnerItem;
-				Log.d("", "SpinnerItem: " + SpinnerItem + " | " + "route: " + route);
-
 
 				List<Overlay> mapOverlays = ((MapView) findViewById(R.id.mapview)).getOverlays();
 				mapOverlays.clear();
@@ -615,13 +689,13 @@ public class map extends MapActivity{
 
 				else{
 					TextView leftButton = (TextView) findViewById(R.id.left_button);
-					Log.d("route", "route is " + route);
 					leftButton.setText(DirectionsMap.get(route).get(0));
 					leftButton.setSelected(false);
 
 					TextView rightButton = (TextView) findViewById(R.id.right_button);
 					rightButton.setText(DirectionsMap.get(route).get(1));
 					rightButton.setSelected(false);
+					rightButton.setClickable(true);
 				}
 			}
 		}
@@ -630,6 +704,7 @@ public class map extends MapActivity{
 
 		}
 	}
+	
 
 	public class BusRefresher extends AsyncTask<String, Void, List<ManagedOverlayItem>>{
 
@@ -648,6 +723,7 @@ public class map extends MapActivity{
 			}
 		}
 	}
+	
 
 	class LineOverlay extends Overlay{
 		public LineOverlay(String routeNum){

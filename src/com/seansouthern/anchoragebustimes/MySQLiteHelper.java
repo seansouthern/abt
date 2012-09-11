@@ -14,8 +14,8 @@ import android.database.sqlite.SQLiteOpenHelper;
 public class MySQLiteHelper extends SQLiteOpenHelper{
 
 	private static String DATABASE_PATH = "/data/data/com.seansouthern.anchoragebustimes/databases/";
-	private static final String DATABASE_NAME = "abtv3.db";
-	private static final Integer DATABASE_VERSION = 3;
+	private static final String DATABASE_NAME = "abtv4.db";
+	private static final Integer DATABASE_VERSION = 4;
 	
 	static SQLiteDatabase ABTDatabase;
 	private final Context myContext;
