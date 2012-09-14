@@ -408,7 +408,6 @@ public class map extends MapActivity{
 		return manStopList;
 	}
 
-
 	public void toCallAsync(final String route) {
 		final Handler handler = new Handler();
 		Timer timer = new Timer();
@@ -433,7 +432,6 @@ public class map extends MapActivity{
 		};
 		timer.schedule(BusRefreshTimerTask, 0,20000);
 	}
-
 
 	OnOverlayGestureListener mogDetector = new ManagedOverlayGestureDetector.OnOverlayGestureListener(){
 		public boolean onDoubleTap(MotionEvent arg0, ManagedOverlay arg1,
@@ -544,6 +542,10 @@ public class map extends MapActivity{
 				if(timesTable.getChildAt(3) != null){
 					timesTable.removeViewAt(3);
 				}
+				
+				// Fix for layout quirk that pushes the right hand side of the info bar offscreen
+				timesTable.setColumnShrinkable(1, true);
+				
 				Elements elems = page.body().select("h3, h1, td, div");
 				TableRow infoRow = new TableRow(context);
 				TableRow timeRow = new TableRow(context);
@@ -552,7 +554,18 @@ public class map extends MapActivity{
 				for(Element src : elems){
 					if(src.nodeName().equals("td") && flag == 0 || flag == 1 ){
 						TextView tv = new TextView(context);
-						tv.setText(src.text());
+						
+						// Abbreviate long Route Names to prevent row overflow
+						if(src.text().equals("WEST ANCHORAGE/U-MED")){
+							tv.setText("WEST ANCH/U-MED");
+						}
+						else if(src.text().equals("UNIVERSITY/HOSPITALS")){
+							tv.setText("UAA/HOSPITALS");
+						}
+						else{
+							tv.setText(src.text());
+						}
+						
 						if(flag == 1){
 							tv.setGravity(Gravity.RIGHT);
 						}
@@ -596,13 +609,13 @@ public class map extends MapActivity{
 
 	}
 
-
 	class MapTimesTable extends TableLayout{
 		public MapTimesTable(Context context, String stopNum) {
 			super(context);
 			makeHeader(stopNum);
 			grabMapTimes(stopNum);
 			setVisibility(View.VISIBLE);
+			
 		}
 
 		public void makeHeader(String stopNum){
@@ -654,7 +667,6 @@ public class map extends MapActivity{
 		}
 	}
 
-
 	public class SpinnerItemListener implements OnItemSelectedListener {
 		public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
 			String SpinnerItem = parent.getItemAtPosition(pos).toString();
@@ -702,7 +714,6 @@ public class map extends MapActivity{
 					leftButton.setText(DirectionsMap.get(route).get(0));
 					leftButton.setSelected(false);
 
-					Log.d("", "right button being set to clickable");
 					TextView rightButton = (TextView) findViewById(R.id.right_button);
 					rightButton.setText(DirectionsMap.get(route).get(1));
 					rightButton.setSelected(false);
@@ -715,7 +726,6 @@ public class map extends MapActivity{
 
 		}
 	}
-
 
 	public class BusRefresher extends AsyncTask<String, Void, List<ManagedOverlayItem>>{
 
@@ -734,7 +744,6 @@ public class map extends MapActivity{
 			}
 		}
 	}
-
 
 	class LineOverlay extends Overlay{
 		public LineOverlay(String routeNum){

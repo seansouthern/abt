@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Anchorage Bus Times</string>
-    <string name="MAPS_API_KEY">03leX7NA3JHJzRLkU3IAshBLhSglEhVf0FBVc4A</string>
+    <string name="MAPS_API_KEY">03leX7NA3JHKCFyu05Bb2jz-D4T3uZmEWEHtI5g</string>
 	<string name="routes_prompt">Select a Route and Direction</string>
     <string-array name="routes_array">
         <item>1 - CROSSTOWN</item>
