@@ -556,11 +556,14 @@ public class map extends MapActivity{
 						TextView tv = new TextView(context);
 						
 						// Abbreviate long Route Names to prevent row overflow
-						if(src.text().equals("WEST ANCHORAGE/U-MED")){
-							tv.setText("WEST ANCH/U-MED");
+						if(src.text().equals("36 WEST ANCHORAGE- U-MED")){
+							tv.setText("36 WEST ANCH/U-MED");
 						}
-						else if(src.text().equals("UNIVERSITY/HOSPITALS")){
-							tv.setText("UAA/HOSPITALS");
+						else if(src.text().equals("13 UNIVERSITY - HOSPITALS")){
+							tv.setText("36 UAA/HOSPITALS");
+						}
+						else if(src.text().equals("102 EAGLE RIVER-CHUGIAK")){
+							tv.setText("102 EAGLE RIVER");
 						}
 						else{
 							tv.setText(src.text());
