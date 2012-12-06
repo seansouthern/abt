@@ -17,6 +17,7 @@ import org.jsoup.select.Elements;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Canvas;
@@ -59,10 +60,10 @@ import de.android1.overlaymanager.OverlayManager;
 import de.android1.overlaymanager.ZoomEvent;
 
 
-public class map extends MapActivity{
-
+public class map extends MapActivity{	
 	public static String route = null;
-
+	public static int LABEL_VANISH_COUNTER = 11;
+	
 	DirectionsMap DirectionsMapClass = new DirectionsMap();
 	Map<String, List<String>> DirectionsMap = DirectionsMapClass.directionsMap;
 	LineCoords lc = new LineCoords();
@@ -87,12 +88,18 @@ public class map extends MapActivity{
 	public void onCreate(Bundle savedInstanceState){
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.map);
-
+		
+		
 		MapView mapView = (MapView) findViewById(R.id.mapview);
 		mapView.setBuiltInZoomControls(true);
 
 		SharedPreferences sp = getPreferences(MODE_PRIVATE);
 		route = sp.getString("LAST_MAP_ROUTE", "1");
+		
+		// Hides the Directions text above the spinner if the activities been opened so many times
+		if(sp.getInt("intActivityOpenedCounter", 0) == LABEL_VANISH_COUNTER){
+			findViewById(R.id.label).setVisibility(View.GONE);
+		}
 
 		Spinner spinner = (Spinner) findViewById(R.id.spinner);
 		ArrayAdapter<CharSequence> SpinnerAdapter = ArrayAdapter.createFromResource(
@@ -218,10 +225,32 @@ public class map extends MapActivity{
 		BusRefreshTimerTask.cancel();
 
 		// Save the route the user is on in order to display it on the next run
-		SharedPreferences LastRoute = getPreferences(MODE_PRIVATE);
-		SharedPreferences.Editor editor = LastRoute.edit();
+		SharedPreferences sp = getPreferences(MODE_PRIVATE);
+		SharedPreferences.Editor editor = sp.edit();
 		editor.putString("LAST_MAP_ROUTE", route);
 		editor.commit();
+		
+		String activityOpenedCounter = "intActivityOpenedCounter";
+		int intActivityOpenedCounter = sp.getInt(activityOpenedCounter, 0);
+		Log.d("counter", String.valueOf(intActivityOpenedCounter));
+		if(intActivityOpenedCounter == LABEL_VANISH_COUNTER){
+			editor.putInt("intActivityOpenedCounter", intActivityOpenedCounter);
+			editor.commit();
+		}
+		else if(intActivityOpenedCounter < LABEL_VANISH_COUNTER && intActivityOpenedCounter != 0){
+			intActivityOpenedCounter++;
+			editor.putInt("intActivityOpenedCounter", intActivityOpenedCounter);
+			editor.commit();
+		}
+		else if(intActivityOpenedCounter == 0){
+			intActivityOpenedCounter++;
+			editor.putInt("intActivityOpenedCounter", 1);
+			editor.commit();
+		}
+		else{
+			
+		}
+		
 	}
 
 	@Override
@@ -555,15 +584,36 @@ public class map extends MapActivity{
 					if(src.nodeName().equals("td") && flag == 0 || flag == 1 ){
 						TextView tv = new TextView(context);
 						
-						// Abbreviate long Route Names to prevent row overflow
+						// Abbreviate long Route Names to prevent ugly row overflow
 						if(src.text().equals("36 WEST ANCHORAGE- U-MED")){
 							tv.setText("36 WEST ANCH/U-MED");
+						}
+						else if(src.text().equals("14 GOVERNMENT HILL")){
+							tv.setText("14 GVRNMNT HILL");
+						}
+						else if(src.text().equals("15 15TH AVE - DEBARR")){
+							tv.setText("15 15TH AVE-DEBARR");
 						}
 						else if(src.text().equals("13 UNIVERSITY - HOSPITALS")){
 							tv.setText("36 UAA/HOSPITALS");
 						}
 						else if(src.text().equals("102 EAGLE RIVER-CHUGIAK")){
-							tv.setText("102 EAGLE RIVER");
+							tv.setText("102 EAGLE RVR");
+						}
+						else if(src.text().equals("1 DIMOND CENTER")){
+							tv.setText("1 DIMOND CTR");
+						}
+						else if(src.text().equals("2 DIMOND CENTER")){
+							tv.setText("2 DIMOND CTR");
+						}
+						else if(src.text().equals("7J DIMOND CENTER")){
+							tv.setText("7J DIMOND CTR");
+						}
+						else if(src.text().equals("7A DIMOND CENTER")){
+							tv.setText("7A DIMOND CTR");
+						}
+						else if(src.text().equals("9 DIMOND CENTER")){
+							tv.setText("9 DIMOND CTR");
 						}
 						else{
 							tv.setText(src.text());
