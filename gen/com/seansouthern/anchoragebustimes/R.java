@@ -15,15 +15,18 @@ public final class R {
     }
     public static final class drawable {
         public static final int abt=0x7f020000;
-        public static final int busmarker=0x7f020001;
-        public static final int button_bg_selected=0x7f020002;
-        public static final int button_bg_selector=0x7f020003;
-        public static final int button_bg_unselected=0x7f020004;
-        public static final int marker=0x7f020005;
-        public static final int tab_bg_selected=0x7f020006;
-        public static final int tab_bg_selector=0x7f020007;
-        public static final int tab_bg_unselected=0x7f020008;
-        public static final int tab_text_selector=0x7f020009;
+        public static final int abth=0x7f020001;
+        public static final int abtl=0x7f020002;
+        public static final int busmarker=0x7f020003;
+        public static final int button_bg_selected=0x7f020004;
+        public static final int button_bg_selector=0x7f020005;
+        public static final int button_bg_unselected=0x7f020006;
+        public static final int double_bus=0x7f020007;
+        public static final int marker=0x7f020008;
+        public static final int tab_bg_selected=0x7f020009;
+        public static final int tab_bg_selector=0x7f02000a;
+        public static final int tab_bg_unselected=0x7f02000b;
+        public static final int tab_text_selector=0x7f02000c;
     }
     public static final class id {
         public static final int about=0x7f08000d;
