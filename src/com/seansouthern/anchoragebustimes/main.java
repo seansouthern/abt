@@ -15,6 +15,7 @@ import org.jsoup.select.Elements;
 
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.ContextMenu;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.Gravity;
@@ -46,6 +47,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
 import android.widget.TabHost.TabContentFactory;
+
 import com.seansouthern.anchoragebustimes.R;
 
 // The main activity, it extends TabActivity for the tab functionality
@@ -64,11 +66,8 @@ public class main extends TabActivity {
 	public static boolean FAV_FLAG = false;
 
 	// A Regex pattern that looks for any amount of numbers at the beginning of a string
-	public static Pattern p = Pattern.compile("^\\d+");
+	public static Pattern p = Pattern.compile("^\\d+[C|N|A|J]?");
 
-
-	// The onCreate function is a very important part of an activity's
-	// life. It's where most everything is created and set into motion. 
 	// Here we are creating tabs and defining navigation.
 	@Override
 	public void onCreate(Bundle savedInstanceState){
@@ -323,7 +322,7 @@ class RouteList extends ListView{
 	}
 
 	public void grabRoutes(){
-		final List<String> routes = Arrays.asList("1 - CROSSTOWN", "2 - LAKE OTIS", "3 - NORTHERN LIGHTS", "7 - SPENARD", 
+		final List<String> routes = Arrays.asList("1 - CROSSTOWN", "2 - LAKE OTIS", "3C - NORTHERN LIGHTS","3N - NORTHERN LIGHTS", "7A - SPENARD", "7J - SPENARD", 
 				"8 - NORTHWAY", "9 - ARCTIC", "13 - SR CTR HOSPITALS UAA", "14 - GOVT HILL", "15 - 15TH AVE/DEBARR", 
 				"36 - 36TH AVE/WEST ANCH", "45 - MOUNTAIN VIEW", "60 - OLD SEWARD", "75 - TUDOR", "102 - EAGLE RIVER EXPRESS");
 
@@ -368,11 +367,76 @@ class StopsList extends ListView{
 	}
 
 	public void grabStops(String routeNum) {
+		String subRouteFlag = null;
+
+		if(routeNum.equals("7A")){
+			routeNum = "7";
+			subRouteFlag = "7A";
+		}
+		else if(routeNum.equals("7J")){
+			routeNum = "7";
+			subRouteFlag = "7J";
+		}
+		else if(routeNum.equals("3C")){
+			routeNum = "3";
+			subRouteFlag = "3C";
+		}
+		else if(routeNum.equals("3N")){
+			routeNum = "3";
+			subRouteFlag = "3N";
+		}
+
+		String where = null;
 		String[] columns = {"_id", "num", "addr", "routes"};
-		String where = "routes LIKE '%, " + routeNum + ",%'";
+		
+		if(routeNum.equals("7") || routeNum.equals("3")){
+			String[] dualDirections = { "", "" };
+			if(subRouteFlag.equals("7A")){
+				dualDirections[0] = "7A DOWNTOWN";
+				dualDirections[1] = "7A DIMOND CENTER";
+			}
+			else if(subRouteFlag.equals("7J")){
+				dualDirections[0] = "7J DOWNTOWN";
+				dualDirections[1] = "7J DIMOND CENTER";
+			}
+			else if(subRouteFlag.equals("3C")){
+				dualDirections[0] = "3C DOWNTOWN";
+				dualDirections[1] = "3C CENTENNIAL";
+			}
+			else if(subRouteFlag.equals("3N")){
+				dualDirections[0] = "3N DOWNTOWN";
+				dualDirections[1] = "3N MULDOON";
+			}
+			
+			String[] dirColumns = {"_id", "num", "route", "direction"};
+			String dirWhere = "route LIKE '" + routeNum + "' AND direction LIKE '%, " + dualDirections[0] + ",%' OR direction LIKE '%, " + dualDirections[1] + ",%'";
+			Cursor cursor = main.db.query("directions", dirColumns, dirWhere, null, null, null, null);
+			cursor.moveToFirst();
+			List<String> stopNumberList = new ArrayList<String>();
+			for(int i = 0; i < cursor.getCount(); i++){
+				int stopNum = cursor.getInt(cursor.getColumnIndex("num"));
+				stopNumberList.add(String.valueOf(stopNum));
+				cursor.moveToNext();
+			}
+
+			for(int j = 0; j < stopNumberList.size(); j++){
+				if(j == 0){
+					where = "num LIKE '" + stopNumberList.get(j) + "'";
+				}
+				else{
+					where = where.concat(" OR num LIKE '" + stopNumberList.get(j) + "'");
+				}
+			}
+		}
+
+		else{
+			where = "routes LIKE '%, " + routeNum + ",%'";
+		}
+		
 		Cursor cursor = main.db.query("stops", columns, where, null, null, null, null);
 		String[] from = new String[] {"num", "addr"};
 		int[] to = new int[] {R.id.list_item, R.id.list_item};
+		
 		SimpleCursorAdapter adapter = new SimpleCursorAdapter(getContext(), R.layout.list_item, cursor, from, to);
 		adapter.setViewBinder(new SimpleCursorAdapter.ViewBinder() {
 			public boolean setViewValue(View view, Cursor cursor, int columnIndex) {
